@@ -1,9 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
+	"go_backend/cache"
 	"go_backend/database"
 	"go_backend/models"
 
@@ -21,6 +24,19 @@ func GetProducts(c *gin.Context) {
 	}
 	if limit < 1 || limit > 100 {
 		limit = 10
+	}
+
+	// Generate cache key
+	cacheKey := fmt.Sprintf("products:page:%d:limit:%d:category:%s", page, limit, category)
+
+	// Try to get from cache
+	var cachedResponse models.APIResponse
+	if cache.RedisClient != nil {
+		if err := cache.Get(cacheKey, &cachedResponse); err == nil {
+			c.Header("X-Cache", "HIT")
+			c.JSON(http.StatusOK, cachedResponse)
+			return
+		}
 	}
 
 	offset := (page - 1) * limit
@@ -53,7 +69,7 @@ func GetProducts(c *gin.Context) {
 		totalPages++
 	}
 
-	c.JSON(http.StatusOK, models.APIResponse{
+	response := models.APIResponse{
 		Success: true,
 		Message: "Products retrieved successfully",
 		Data: models.PaginationResponse{
@@ -63,12 +79,37 @@ func GetProducts(c *gin.Context) {
 			Total:      total,
 			TotalPages: totalPages,
 		},
-	})
+	}
+
+	// Cache the response for 5 minutes
+	if cache.RedisClient != nil {
+		cache.Set(cacheKey, response, 5*time.Minute)
+	}
+
+	c.Header("X-Cache", "MISS")
+	c.JSON(http.StatusOK, response)
 }
 
 // GetProductByID retrieves a single product by ID
 func GetProductByID(c *gin.Context) {
 	id := c.Param("id")
+
+	// Generate cache key
+	cacheKey := fmt.Sprintf("product:%s", id)
+
+	// Try to get from cache
+	var cachedProduct models.Product
+	if cache.RedisClient != nil {
+		if err := cache.Get(cacheKey, &cachedProduct); err == nil {
+			c.Header("X-Cache", "HIT")
+			c.JSON(http.StatusOK, models.APIResponse{
+				Success: true,
+				Message: "Product retrieved successfully",
+				Data:    cachedProduct,
+			})
+			return
+		}
+	}
 
 	var product models.Product
 	if err := database.DB.First(&product, id).Error; err != nil {
@@ -80,6 +121,12 @@ func GetProductByID(c *gin.Context) {
 		return
 	}
 
+	// Cache the product for 10 minutes
+	if cache.RedisClient != nil {
+		cache.Set(cacheKey, product, 10*time.Minute)
+	}
+
+	c.Header("X-Cache", "MISS")
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Message: "Product retrieved successfully",
@@ -118,6 +165,11 @@ func CreateProduct(c *gin.Context) {
 			Error:   err.Error(),
 		})
 		return
+	}
+
+	// Invalidate products list cache
+	if cache.RedisClient != nil {
+		cache.DeletePattern("products:*")
 	}
 
 	c.JSON(http.StatusCreated, models.APIResponse{
@@ -186,6 +238,12 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	// Invalidate cache for this product and products list
+	if cache.RedisClient != nil {
+		cache.Delete(fmt.Sprintf("product:%s", id))
+		cache.DeletePattern("products:*")
+	}
+
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Message: "Product updated successfully",
@@ -215,6 +273,12 @@ func DeleteProduct(c *gin.Context) {
 			Error:   err.Error(),
 		})
 		return
+	}
+
+	// Invalidate cache for this product and products list
+	if cache.RedisClient != nil {
+		cache.Delete(fmt.Sprintf("product:%s", id))
+		cache.DeletePattern("products:*")
 	}
 
 	c.JSON(http.StatusOK, models.APIResponse{

@@ -6,14 +6,16 @@
 
 ```
 go_backend/
-├── config/              # Cấu hình ứng dụng
+├── cache/              # Redis caching layer
+│   └── redis.go
+├── config/             # Cấu hình ứng dụng
 │   └── config.go
-├── controllers/         # Xử lý logic cho các endpoint
+├── controllers/        # Xử lý logic cho các endpoint
 │   ├── auth_controller.go
 │   └── product_controller.go
-├── database/           # Kết nối và migration database
+├── database/          # Kết nối và migration database
 │   └── database.go
-├── middleware/         # Middleware cho authentication, logging, CORS
+├── middleware/        # Middleware cho authentication, logging, CORS
 │   ├── auth.go
 │   ├── cors.go
 │   └── logger.go
@@ -46,6 +48,13 @@ go_backend/
 - ✅ Tạo sản phẩm mới
 - ✅ Cập nhật sản phẩm
 - ✅ Xóa sản phẩm (soft delete)
+
+### Caching
+
+- ✅ Redis caching cho product endpoints
+- ✅ Cache với TTL tự động
+- ✅ Cache invalidation khi update/delete
+- ✅ X-Cache header để kiểm tra cache status (HIT/MISS)
 
 ### Middleware
 
@@ -107,6 +116,12 @@ DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=go_backend_db
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
 PORT=8080
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 APP_ENV=development
@@ -388,6 +403,7 @@ curl -X POST http://localhost:8080/api/v1/products \
 4. **ORM** - Object-Relational Mapping
 5. **JWT** - JSON Web Tokens
 6. **CRUD Operations** - Create, Read, Update, Delete
+7. **Caching** - Redis để tăng hiệu suất
 
 ### Tài liệu tham khảo:
 
@@ -395,12 +411,14 @@ curl -X POST http://localhost:8080/api/v1/products \
 - [GORM Documentation](https://gorm.io/docs/)
 - [Go Documentation](https://golang.org/doc/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Redis Documentation](https://redis.io/docs/)
 
 ## 🔧 Mở rộng
 
 Để phát triển thêm, bạn có thể:
 
 - ✅ Docker containerization (Database)
+- ✅ Redis caching
 - Thêm unit tests
 - Implement refresh token
 - Thêm role-based access control
@@ -411,6 +429,57 @@ curl -X POST http://localhost:8080/api/v1/products \
 - API documentation với Swagger
 - Dockerize Go application
 - CI/CD pipeline
+
+## 📊 Redis Caching
+
+### Cách hoạt động
+
+Application sử dụng Redis để cache kết quả từ database, giúp tăng hiệu suất và giảm tải cho database.
+
+**Cached endpoints:**
+
+- `GET /api/v1/products` - Cache trong 5 phút
+- `GET /api/v1/products/:id` - Cache trong 10 phút
+
+**Cache invalidation:**
+
+Cache sẽ tự động bị xóa khi:
+
+- Tạo sản phẩm mới
+- Cập nhật sản phẩm
+- Xóa sản phẩm
+
+### Kiểm tra Cache Status
+
+Khi gọi API, kiểm tra header `X-Cache`:
+
+- `X-Cache: HIT` - Dữ liệu được lấy từ cache
+- `X-Cache: MISS` - Dữ liệu được lấy từ database và lưu vào cache
+
+Ví dụ:
+
+```bash
+curl -I http://localhost:8080/api/v1/products
+# Response headers sẽ chứa:
+# X-Cache: MISS (lần đầu)
+# X-Cache: HIT (các lần sau trong vòng 5 phút)
+```
+
+### Quản lý Redis
+
+Kết nối Redis CLI:
+
+```bash
+# Qua Docker
+docker exec -it go_backend_redis redis-cli
+
+# Các lệnh Redis hữu ích:
+KEYS *                    # Xem tất cả keys
+GET product:1             # Lấy giá trị của key
+DEL product:1             # Xóa một key
+FLUSHALL                  # Xóa toàn bộ cache (cẩn thận!)
+TTL product:1             # Xem thời gian còn lại của key
+```
 
 ## ⚠️ Lưu ý bảo mật
 

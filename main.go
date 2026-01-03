@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"go_backend/cache"
 	"go_backend/config"
 	"go_backend/database"
 	"go_backend/routes"
@@ -24,6 +25,19 @@ func main() {
 
 	// Connect to database
 	database.ConnectDB(cfg)
+
+	// Connect to Redis
+	redisConfig := cache.RedisConfig{
+		Host:     cfg.RedisHost,
+		Port:     cfg.RedisPort,
+		Password: cfg.RedisPassword,
+		DB:       cfg.RedisDB,
+	}
+	if err := cache.ConnectRedis(redisConfig); err != nil {
+		log.Println("⚠️ Warning: Failed to connect to Redis:", err)
+		log.Println("Continuing without cache...")
+	}
+	defer cache.CloseRedis()
 
 	// Auto migrate database models
 	database.AutoMigrate()
