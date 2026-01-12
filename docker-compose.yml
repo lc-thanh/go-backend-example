@@ -1,6 +1,19 @@
-version: "3.8"
-
 services:
+  backend:
+    container_name: go_backend_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.production
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8080:8080"
+    networks:
+      - backend-network
+
   postgres:
     image: postgres:15-alpine
     container_name: go_backend_db
@@ -55,30 +68,6 @@ services:
     restart: unless-stopped
     networks:
       - backend-network
-
-  # Uncomment this section if you want to run the Go application in Docker as well
-  # app:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: go_backend_app
-  #   environment:
-  #     DB_HOST: postgres
-  #     DB_PORT: 5432
-  #     DB_USER: postgres
-  #     DB_PASSWORD: postgres
-  #     DB_NAME: go_backend_db
-  #     JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
-  #     PORT: 8080
-  #     APP_ENV: development
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   networks:
-  #     - backend-network
-  #   restart: unless-stopped
 
 volumes:
   postgres_data:
