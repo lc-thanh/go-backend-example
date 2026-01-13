@@ -73,7 +73,7 @@ go_backend/
 ### 1. Clone repository
 
 ```bash
-cd d:\Coding\go_projects\go_backend
+cd go-backend-example/
 ```
 
 > **Lưu ý:** Đảm bảo Docker Desktop đã được cài đặt và đang chạy trên máy của bạn.
