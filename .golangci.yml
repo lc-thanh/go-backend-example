@@ -1,0 +1,115 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  # Timeout for analysis
+  timeout: 5m
+
+  # Include test files
+  tests: true
+
+  # Which dirs to skip: issues from them won't be reported
+  skip-dirs:
+    - vendor
+    - bin
+    - tmp
+
+linters:
+  enable:
+    - errcheck # Check for unchecked errors
+    - gosimple # Simplify code
+    - govet # Reports suspicious constructs
+    - ineffassign # Detects ineffectual assignments
+    - staticcheck # Static analysis
+    - typecheck # Type checks
+    - unused # Checks for unused code
+    - gofmt # Checks formatting
+    - goimports # Checks imports
+    - misspell # Finds commonly misspelled words
+    - revive # Fast, configurable, extensible linter
+    - gosec # Security problems
+    - gocritic # The most opinionated Go linter
+    - bodyclose # Checks HTTP response body is closed
+    - noctx # Finds sending http request without context.Context
+    - sqlclosecheck # Checks that sql.Rows and sql.Stmt are closed
+
+  disable:
+    - deadcode # Deprecated
+    - varcheck # Deprecated
+    - structcheck # Deprecated
+    - ifshort # Deprecated
+
+linters-settings:
+  errcheck:
+    # Report about not checking of errors in type assertions
+    check-type-assertions: true
+
+  govet:
+    # Enable all analyzers
+    enable-all: true
+
+  gofmt:
+    # Simplify code
+    simplify: true
+
+  goimports:
+    # Put imports beginning with prefix after 3rd-party packages
+    local-prefixes: go_backend
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+      - name: var-naming
+        severity: warning
+        disabled: false
+      - name: package-comments
+        severity: warning
+        disabled: true
+
+  gosec:
+    excludes:
+      - G404 # Weak random number generator - OK for non-security critical usage
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - commentFormatting
+      - whyNoLint
+
+issues:
+  # Maximum issues count per one linter
+  max-issues-per-linter: 0
+
+  # Maximum count of issues with the same text
+  max-same-issues: 0
+
+  # Show only new issues
+  new: false
+
+  # Exclude some linters from running on tests files
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - gocritic
+
+    # Exclude shadow checking on the variable named err
+    - linters:
+        - govet
+      text: 'shadow: declaration of "err"'
+
+output:
+  # Colored output
+  format: colored-line-number
+
+  # Print lines of code with issue
+  print-issued-lines: true
+
+  # Print linter name in the end of issue text
+  print-linter-name: true
