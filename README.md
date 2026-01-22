@@ -1,5 +1,10 @@
 # Go Backend RESTful API
 
+[![Go CI/CD](https://github.com/lc-thanh/go-backend-example/actions/workflows/ci.yml/badge.svg)](https://github.com/lc-thanh/go-backend-example/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/lc-thanh/go-backend-example)](https://goreportcard.com/report/github.com/lc-thanh/go-backend-example)
+[![codecov](https://codecov.io/gh/lc-thanh/go-backend-example/branch/main/graph/badge.svg)](https://codecov.io/gh/lc-thanh/go-backend-example)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Đây là một ví dụ đầy đủ về RESTful API được viết bằng Golang với cấu trúc chuẩn, sử dụng Gin framework, GORM ORM, và PostgreSQL database.
 
 ## 🏗️ Cấu trúc dự án
@@ -489,6 +494,60 @@ TTL product:1             # Xem thời gian còn lại của key
 4. **Validate tất cả input** từ client
 5. **Implement rate limiting** để chống brute force
 6. **Sử dụng prepared statements** (GORM đã hỗ trợ)
+
+## 🧪 Testing
+
+Dự án đã được tích hợp đầy đủ các test và CI/CD pipeline.
+
+### Chạy Tests
+
+```bash
+# Chạy tất cả tests
+make test
+
+# Chạy tests với coverage
+make test-coverage
+
+# Chạy linter
+make lint
+
+# Chạy full CI pipeline local
+make ci
+```
+
+### Setup Test Environment
+
+```bash
+# Windows
+.\scripts\setup-test.ps1
+
+# Linux/Mac
+chmod +x scripts/setup-test.sh
+./scripts/setup-test.sh
+```
+
+### CI/CD Pipeline
+
+Dự án sử dụng GitHub Actions với các workflows:
+
+- **CI Pipeline** (`.github/workflows/ci.yml`):
+  - Chạy tests với PostgreSQL và Redis
+  - Tạo coverage report
+  - Chạy linter (golangci-lint)
+  - Build Docker image
+  - Upload artifacts
+
+- **PR Checks** (`.github/workflows/pr-checks.yml`):
+  - Validate code formatting
+  - Security scan với Gosec
+  - Test trên nhiều Go versions (1.21, 1.22, 1.23)
+  - Dependency review
+
+### Coverage Report
+
+Coverage reports được tự động upload lên [Codecov](https://codecov.io) sau mỗi lần push.
+
+Xem chi tiết về testing tại [TESTING.md](TESTING.md)
 
 ---
 
