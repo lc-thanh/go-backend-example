@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label 'backend-server'
+    }
     
     environment {
         // Docker configuration
