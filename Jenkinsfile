@@ -183,10 +183,12 @@ pipeline {
                             go tool cover -html=coverage.out -o coverage.html || true
                     '''
                     publishHTML([
-                        reportDir: '.',
-                        reportFiles: 'coverage.html',
-                        reportName: 'Coverage Report',
-                        keepAll: true
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'coverage',
+                        reportFiles: 'index.html',
+                        reportName: 'Go Coverage Report'
                     ])
                 }
             }
