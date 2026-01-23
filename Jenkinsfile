@@ -14,6 +14,7 @@ pipeline {
         CGO_ENABLED = '0'
         GOOS = 'linux'
         GOARCH = 'amd64'
+        GOLANGCI_LINT_VERSION = '1.60.3-go1.23.0'
         
         // Environment files path on Jenkins node
         ENV_DIR = '/app/env'
@@ -128,7 +129,7 @@ pipeline {
                             docker run --rm \
                                 -v "$(pwd):/app" \
                                 -w /app \
-                                golangci/golangci-lint:latest \
+                                golangci/golangci-lint:${GOLANGCI_LINT_VERSION} \
                                 golangci-lint run --timeout 10m --out-format colored-line-number
                         '''
                     }
