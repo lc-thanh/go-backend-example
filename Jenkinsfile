@@ -14,7 +14,7 @@ pipeline {
         CGO_ENABLED = '0'
         GOOS = 'linux'
         GOARCH = 'amd64'
-        GOLANGCI_LINT_VERSION = '1.60.3-go1.23.0'
+        GOLANGCI_LINT_VERSION = 'v1.60.3-alpine'
         
         // Environment files path on Jenkins node
         ENV_DIR = '/app/env'
@@ -130,7 +130,7 @@ pipeline {
                                 -v "$(pwd):/app" \
                                 -w /app \
                                 golangci/golangci-lint:${GOLANGCI_LINT_VERSION} \
-                                golangci-lint run --timeout 10m --out-format colored-line-number
+                                golangci-lint run --timeout 10m colored-line-number
                         '''
                     }
                 }
