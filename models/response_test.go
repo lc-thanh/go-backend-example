@@ -46,5 +46,3 @@ func TestPaginationResponse(t *testing.T) {
 		t.Errorf("TotalPages = %v, want 1", pagination.TotalPages)
 	}
 }
-
-

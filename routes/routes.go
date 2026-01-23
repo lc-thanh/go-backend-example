@@ -41,12 +41,12 @@ func SetupRoutes(router *gin.Engine) {
 			// Product routes
 			products := protected.Group("/products")
 			{
-				products.GET("", controllers.GetProducts)                           // GET /api/v1/products
-				products.GET("/:id", controllers.GetProductByID)                    // GET /api/v1/products/:id
-				products.POST("", controllers.CreateProduct)                        // POST /api/v1/products
-				products.PUT("/:id", controllers.UpdateProduct)                     // PUT /api/v1/products/:id
-				products.DELETE("/:id", controllers.DeleteProduct)                  // DELETE /api/v1/products/:id (soft delete)
-				products.POST("/:id/restore", controllers.RestoreProduct)           // POST /api/v1/products/:id/restore
+				products.GET("", controllers.GetProducts)                             // GET /api/v1/products
+				products.GET("/:id", controllers.GetProductByID)                      // GET /api/v1/products/:id
+				products.POST("", controllers.CreateProduct)                          // POST /api/v1/products
+				products.PUT("/:id", controllers.UpdateProduct)                       // PUT /api/v1/products/:id
+				products.DELETE("/:id", controllers.DeleteProduct)                    // DELETE /api/v1/products/:id (soft delete)
+				products.POST("/:id/restore", controllers.RestoreProduct)             // POST /api/v1/products/:id/restore
 				products.DELETE("/:id/permanent", controllers.PermanentDeleteProduct) // DELETE /api/v1/products/:id/permanent (hard delete)
 			}
 		}

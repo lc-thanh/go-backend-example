@@ -23,7 +23,7 @@ type Config struct {
 // LoadConfig loads configuration from environment variables
 func LoadConfig() *Config {
 	redisDB, _ := strconv.Atoi(getEnv("REDIS_DB", "0"))
-	
+
 	return &Config{
 		DBHost:        getEnv("DB_HOST", "localhost"),
 		DBPort:        getEnv("DB_PORT", "5432"),

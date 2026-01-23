@@ -16,7 +16,7 @@ import (
 func TestAuthMiddleware(t *testing.T) {
 	// Set test mode
 	gin.SetMode(gin.TestMode)
-	
+
 	// Set test JWT secret
 	os.Setenv("JWT_SECRET", "test-secret-key")
 	defer os.Unsetenv("JWT_SECRET")
@@ -70,7 +70,7 @@ func TestAuthMiddleware(t *testing.T) {
 			// Setup
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			
+
 			// Generate valid token if needed
 			var token string
 			if tt.setupToken {
@@ -79,7 +79,7 @@ func TestAuthMiddleware(t *testing.T) {
 				assert.NoError(t, err)
 				tt.authHeader = "Bearer " + token
 			}
-			
+
 			// Create request
 			c.Request = httptest.NewRequest("GET", "/test", nil)
 			if tt.authHeader != "" {
@@ -180,7 +180,7 @@ func TestAdminMiddleware(t *testing.T) {
 			// Setup
 			w := httptest.NewRecorder()
 			c, router := gin.CreateTestContext(w)
-			
+
 			// Set up test endpoint
 			router.GET("/test", func(c *gin.Context) {
 				if tt.userRole != "" {
@@ -192,7 +192,7 @@ func TestAdminMiddleware(t *testing.T) {
 					Message: "OK",
 				})
 			})
-			
+
 			c.Request = httptest.NewRequest("GET", "/test", nil)
 			router.ServeHTTP(w, c.Request)
 

@@ -55,7 +55,7 @@ func TestCORSMiddleware(t *testing.T) {
 			// Setup
 			w := httptest.NewRecorder()
 			c, router := gin.CreateTestContext(w)
-			
+
 			// Add CORS middleware and test endpoint
 			router.Use(CORSMiddleware())
 			router.Handle(tt.method, "/test", func(c *gin.Context) {
@@ -93,7 +93,7 @@ func TestCORSMiddlewareWithoutOrigin(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, router := gin.CreateTestContext(w)
-	
+
 	router.Use(CORSMiddleware())
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

@@ -47,14 +47,14 @@ func TestLoggerMiddleware(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Capture logs
 			var logBuffer bytes.Buffer
-			
+
 			// Setup
 			w := httptest.NewRecorder()
 			c, router := gin.CreateTestContext(w)
-			
+
 			// Add logger middleware
 			router.Use(LoggerMiddleware())
-			
+
 			// Add test endpoints
 			router.GET("/test", func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -78,12 +78,12 @@ func TestLoggerMiddleware(t *testing.T) {
 
 			// The middleware should not break the request
 			assert.NotNil(t, w)
-			
+
 			// For existing routes, check status code matches
 			if tt.path == "/test" {
 				assert.Equal(t, tt.statusCode, w.Code)
 			}
-			
+
 			// Logger should have been called (we can't easily verify logs without dependency injection)
 			_ = logBuffer
 		})
@@ -95,7 +95,7 @@ func TestLoggerMiddlewareWithError(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, router := gin.CreateTestContext(w)
-	
+
 	router.Use(LoggerMiddleware())
 	router.GET("/error", func(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
