@@ -103,7 +103,7 @@ issues:
 output:
   # Output formats
   formats:
-    - format: colored-line-number
+    - colored-line-number
 
   # Print lines of code with issue
   print-issued-lines: true
