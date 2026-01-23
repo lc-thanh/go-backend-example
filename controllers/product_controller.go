@@ -247,8 +247,12 @@ func UpdateProduct(c *gin.Context) {
 
 	// Invalidate cache for this product and products list
 	if cache.RedisClient != nil {
-		cache.Delete(fmt.Sprintf("product:%s", id))
-		cache.DeletePattern("products:*")
+		if err := cache.Delete(fmt.Sprintf("product:%s", id)); err != nil {
+			log.Printf("Failed to delete product cache: %v", err)
+		}
+		if err := cache.DeletePattern("products:*"); err != nil {
+			log.Printf("Failed to invalidate products cache: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, models.APIResponse{
@@ -284,8 +288,12 @@ func DeleteProduct(c *gin.Context) {
 
 	// Invalidate cache for this product and products list
 	if cache.RedisClient != nil {
-		cache.Delete(fmt.Sprintf("product:%s", id))
-		cache.DeletePattern("products:*")
+		if err := cache.Delete(fmt.Sprintf("product:%s", id)); err != nil {
+			log.Printf("Failed to delete product cache: %v", err)
+		}
+		if err := cache.DeletePattern("products:*"); err != nil {
+			log.Printf("Failed to invalidate products cache: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, models.APIResponse{

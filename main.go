@@ -64,7 +64,7 @@ func main() {
 	// Start server
 	fmt.Printf("🚀 Server is running on port %s\n", port)
 	if err := router.Run(":" + port); err != nil {
-		cache.CloseRedis()
-		log.Fatal("Failed to start server:", err)
+		log.Printf("Failed to start server: %v", err)
+		os.Exit(1)
 	}
 }
