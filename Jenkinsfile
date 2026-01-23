@@ -130,7 +130,7 @@ pipeline {
                                 -v "$(pwd):/app" \
                                 -w /app \
                                 golangci/golangci-lint:${GOLANGCI_LINT_VERSION} \
-                                golangci-lint run --timeout 10m colored-line-number
+                                golangci-lint run --timeout 10m
                         '''
                     }
                 }
