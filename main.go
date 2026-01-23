@@ -65,6 +65,6 @@ func main() {
 	fmt.Printf("🚀 Server is running on port %s\n", port)
 	if err := router.Run(":" + port); err != nil {
 		log.Printf("Failed to start server: %v", err)
-		os.Exit(1)
+		return
 	}
 }
