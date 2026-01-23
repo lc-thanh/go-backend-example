@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -83,7 +84,9 @@ func GetProducts(c *gin.Context) {
 
 	// Cache the response for 5 minutes
 	if cache.RedisClient != nil {
-		cache.Set(cacheKey, response, 5*time.Minute)
+		if err := cache.Set(cacheKey, response, 5*time.Minute); err != nil {
+			log.Printf("Failed to cache products list: %v", err)
+		}
 	}
 
 	c.Header("X-Cache", "MISS")
@@ -123,7 +126,9 @@ func GetProductByID(c *gin.Context) {
 
 	// Cache the product for 10 minutes
 	if cache.RedisClient != nil {
-		cache.Set(cacheKey, product, 10*time.Minute)
+		if err := cache.Set(cacheKey, product, 10*time.Minute); err != nil {
+			log.Printf("Failed to cache product %s: %v", id, err)
+		}
 	}
 
 	c.Header("X-Cache", "MISS")
@@ -169,7 +174,9 @@ func CreateProduct(c *gin.Context) {
 
 	// Invalidate products list cache
 	if cache.RedisClient != nil {
-		cache.DeletePattern("products:*")
+		if err := cache.DeletePattern("products:*"); err != nil {
+			log.Printf("Failed to invalidate products cache: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusCreated, models.APIResponse{

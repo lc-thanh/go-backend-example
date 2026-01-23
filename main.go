@@ -37,7 +37,11 @@ func main() {
 		log.Println("⚠️ Warning: Failed to connect to Redis:", err)
 		log.Println("Continuing without cache...")
 	}
-	defer cache.CloseRedis()
+	defer func() {
+		if err := cache.CloseRedis(); err != nil {
+			log.Printf("Failed to close Redis: %v", err)
+		}
+	}()
 
 	// Auto migrate database models
 	database.AutoMigrate()
@@ -60,6 +64,7 @@ func main() {
 	// Start server
 	fmt.Printf("🚀 Server is running on port %s\n", port)
 	if err := router.Run(":" + port); err != nil {
+		cache.CloseRedis()
 		log.Fatal("Failed to start server:", err)
 	}
 }

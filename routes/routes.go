@@ -23,32 +23,26 @@ func SetupRoutes(router *gin.Engine) {
 
 	// API v1 routes
 	v1 := router.Group("/api/v1")
-	{
-		// Public routes (no authentication required)
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/register", controllers.Register)
-			auth.POST("/login", controllers.Login)
-		}
 
-		// Protected routes (authentication required)
-		protected := v1.Group("")
-		protected.Use(middleware.AuthMiddleware())
-		{
-			// User profile routes
-			protected.GET("/profile", controllers.GetProfile)
+	// Public routes (no authentication required)
+	auth := v1.Group("/auth")
+	auth.POST("/register", controllers.Register)
+	auth.POST("/login", controllers.Login)
 
-			// Product routes
-			products := protected.Group("/products")
-			{
-				products.GET("", controllers.GetProducts)                             // GET /api/v1/products
-				products.GET("/:id", controllers.GetProductByID)                      // GET /api/v1/products/:id
-				products.POST("", controllers.CreateProduct)                          // POST /api/v1/products
-				products.PUT("/:id", controllers.UpdateProduct)                       // PUT /api/v1/products/:id
-				products.DELETE("/:id", controllers.DeleteProduct)                    // DELETE /api/v1/products/:id (soft delete)
-				products.POST("/:id/restore", controllers.RestoreProduct)             // POST /api/v1/products/:id/restore
-				products.DELETE("/:id/permanent", controllers.PermanentDeleteProduct) // DELETE /api/v1/products/:id/permanent (hard delete)
-			}
-		}
-	}
+	// Protected routes (authentication required)
+	protected := v1.Group("")
+	protected.Use(middleware.AuthMiddleware())
+
+	// User profile routes
+	protected.GET("/profile", controllers.GetProfile)
+
+	// Product routes
+	products := protected.Group("/products")
+	products.GET("", controllers.GetProducts)                             // GET /api/v1/products
+	products.GET("/:id", controllers.GetProductByID)                      // GET /api/v1/products/:id
+	products.POST("", controllers.CreateProduct)                          // POST /api/v1/products
+	products.PUT("/:id", controllers.UpdateProduct)                       // PUT /api/v1/products/:id
+	products.DELETE("/:id", controllers.DeleteProduct)                    // DELETE /api/v1/products/:id (soft delete)
+	products.POST("/:id/restore", controllers.RestoreProduct)             // POST /api/v1/products/:id/restore
+	products.DELETE("/:id/permanent", controllers.PermanentDeleteProduct) // DELETE /api/v1/products/:id/permanent (hard delete)
 }

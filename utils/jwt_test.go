@@ -110,6 +110,7 @@ func TestValidateJWT(t *testing.T) {
 				}
 				if claims == nil {
 					t.Error("ValidateJWT() returned nil claims")
+					return
 				}
 				if claims.Email != "test@example.com" {
 					t.Errorf("ValidateJWT() email = %v, want test@example.com", claims.Email)

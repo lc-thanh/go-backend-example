@@ -94,11 +94,17 @@ issues:
         - errcheck
         - gosec
         - gocritic
+        - govet
 
     # Exclude shadow checking on the variable named err
     - linters:
         - govet
       text: 'shadow: declaration of "err"'
+
+    # Exclude fieldalignment for better code readability
+    - linters:
+        - govet
+      text: "fieldalignment:"
 
 output:
   # Output formats

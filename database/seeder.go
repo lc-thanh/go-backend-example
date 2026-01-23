@@ -1,10 +1,11 @@
 package database
 
 import (
-	"go_backend/models"
 	"log"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"go_backend/models"
 )
 
 // SeedData seeds initial data into the database
