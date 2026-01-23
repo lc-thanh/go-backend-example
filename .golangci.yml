@@ -8,12 +8,6 @@ run:
   # Include test files
   tests: true
 
-  # Which dirs to skip: issues from them won't be reported
-  skip-dirs:
-    - vendor
-    - bin
-    - tmp
-
 linters:
   enable:
     - errcheck # Check for unchecked errors
@@ -33,11 +27,7 @@ linters:
     - noctx # Finds sending http request without context.Context
     - sqlclosecheck # Checks that sql.Rows and sql.Stmt are closed
 
-  disable:
-    - deadcode # Deprecated
-    - varcheck # Deprecated
-    - structcheck # Deprecated
-    - ifshort # Deprecated
+  # All deprecated linters have been removed
 
 linters-settings:
   errcheck:
@@ -82,6 +72,12 @@ linters-settings:
       - whyNoLint
 
 issues:
+  # Which dirs to exclude: issues from them won't be reported
+  exclude-dirs:
+    - vendor
+    - bin
+    - tmp
+
   # Maximum issues count per one linter
   max-issues-per-linter: 0
 
@@ -105,8 +101,9 @@ issues:
       text: 'shadow: declaration of "err"'
 
 output:
-  # Colored output
-  format: colored-line-number
+  # Output formats
+  formats:
+    - format: colored-line-number
 
   # Print lines of code with issue
   print-issued-lines: true
