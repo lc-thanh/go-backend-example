@@ -7,6 +7,7 @@ pipeline {
         // Docker configuration
         DOCKER_REGISTRY = 'registry.lcthanh.cloud'
         DOCKER_IMAGE_NAME = 'lcthanh/go-backend'
+        DOCKER_IMAGE_FULL_NAME = "${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}"
         DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
         
         // Go configuration
@@ -317,19 +318,19 @@ pipeline {
             }
             steps {
                 script {
-                    echo "🐳 Building Docker image: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "🐳 Building Docker image: ${DOCKER_IMAGE_FULL_NAME}:${IMAGE_TAG}"
                 }
                 sh '''
                     # Build Docker image
-                    docker build -t ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} .
+                    docker build -t ${DOCKER_IMAGE_FULL_NAME}:${IMAGE_TAG} .
                     
                     # Tag as latest if main branch
                     if [ "${CURRENT_BRANCH}" = "main" ] || [ "${CURRENT_BRANCH}" = "master" ]; then
-                        docker tag ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_IMAGE_NAME}:latest
+                        docker tag ${DOCKER_IMAGE_FULL_NAME}:${IMAGE_TAG} ${DOCKER_IMAGE_FULL_NAME}:latest
                     fi
                     
                     # List built images
-                    docker images | grep ${DOCKER_IMAGE_NAME}
+                    docker images | grep ${DOCKER_IMAGE_FULL_NAME}
                 '''
             }
         }
@@ -352,7 +353,7 @@ pipeline {
                         --name go-backend-test-${BUILD_NUMBER} \
                         -p 8081:8080 \
                         --env-file ${ENV_DIR}/.env.test \
-                        ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
+                        ${DOCKER_IMAGE_FULL_NAME}:${IMAGE_TAG}
                     
                     # Wait for container to be ready
                     sleep 5
@@ -392,11 +393,11 @@ pipeline {
                         echo "$DOCKER_PASS" | docker login ${DOCKER_REGISTRY} -u "$DOCKER_USER" --password-stdin
                         
                         # Push image with specific tag
-                        docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
+                        docker push ${DOCKER_IMAGE_FULL_NAME}:${IMAGE_TAG}
                         
                         # Push latest tag if main branch
                         if [ "${CURRENT_BRANCH}" = "main" ] || [ "${CURRENT_BRANCH}" = "master" ]; then
-                            docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:latest
+                            docker push ${DOCKER_IMAGE_FULL_NAME}:latest
                         fi
                         
                         # Logout
@@ -465,7 +466,7 @@ pipeline {
                         # Replace with your actual deployment method
                         
                         echo "Environment: ${deployEnv}"
-                        echo "Image: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
+                        echo "Image: ${DOCKER_IMAGE_FULL_NAME}:${IMAGE_TAG}"
                         echo "Env file: ${envFile}"
                         
                         # Example deployment commands:
@@ -478,7 +479,7 @@ pipeline {
                         
                         # Option 3: Kubernetes
                         # kubectl set image deployment/go-backend \\
-                        #     go-backend=${DOCKER_IMAGE_NAME}:${IMAGE_TAG} \\
+                        #     go-backend=${DOCKER_IMAGE_FULL_NAME}:${IMAGE_TAG} \\
                         #     -n ${deployEnv}
                         # kubectl rollout status deployment/go-backend -n ${deployEnv}
                         
@@ -490,7 +491,7 @@ pipeline {
                             -p 8080:8080 \\
                             --env-file ${envFile} \\
                             --restart unless-stopped \\
-                            ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
+                            ${DOCKER_IMAGE_FULL_NAME}:${IMAGE_TAG}
                         
                         echo "✅ Deployment completed successfully"
                     """
@@ -565,7 +566,7 @@ pipeline {
                 def message = "✅ Build #${env.BUILD_NUMBER} succeeded"
                 message += "\nBranch/Tag: ${CURRENT_BRANCH}"
                 if (CURRENT_BRANCH == 'main' || CURRENT_BRANCH == 'master' || env.TAG_NAME) {
-                    message += "\n🚀 Deployed: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
+                    message += "\n🚀 Deployed: ${DOCKER_IMAGE_FULL_NAME}:${IMAGE_TAG}"
                 }
                 echo message
                 
