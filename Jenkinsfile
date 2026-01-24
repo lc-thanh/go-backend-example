@@ -264,6 +264,7 @@ pipeline {
                 }
                 sh '''
                     # Run docker with current user to avoid permission issues
+                    # Set GOCACHE and GOMODCACHE to workspace to avoid permission denied
                     docker run --rm \
                         -u $(id -u):$(id -g) \
                         -v "$(pwd):/app" \
@@ -271,8 +272,13 @@ pipeline {
                         -e CGO_ENABLED=${CGO_ENABLED} \
                         -e GOOS=${GOOS} \
                         -e GOARCH=${GOARCH} \
+                        -e GOCACHE=/app/.cache/go-build \
+                        -e GOMODCACHE=/app/.cache/go-mod \
                         golang:${GO_VERSION}-alpine \
                         sh -c '
+                            # Create cache directories
+                            mkdir -p .cache/go-build .cache/go-mod
+                            
                             go build -v \
                                 -ldflags="-s -w -X main.Version=${IMAGE_TAG} -X main.BuildTime=${BUILD_TIME}" \
                                 -o bin/go-backend \
@@ -504,6 +510,7 @@ pipeline {
                         deleteDirs: true,
                         patterns: [
                             [pattern: 'bin/', type: 'INCLUDE'],
+                            [pattern: '.cache/', type: 'INCLUDE'],
                             [pattern: 'coverage.*', type: 'INCLUDE'],
                             [pattern: 'gosec-report.json', type: 'INCLUDE']
                         ]
@@ -512,7 +519,7 @@ pipeline {
                     echo "⚠️ cleanWs() failed, using docker to remove root-owned files..."
                     sh '''
                         # Remove root-owned files using docker
-                        docker run --rm -v "$(pwd):/workspace" alpine sh -c 'rm -rf /workspace/bin /workspace/coverage.* /workspace/gosec-report.json' || true
+                        docker run --rm -v "$(pwd):/workspace" alpine sh -c 'rm -rf /workspace/bin /workspace/.cache /workspace/coverage.* /workspace/gosec-report.json' || true
                         # Try cleanWs again
                     '''
                     cleanWs(deleteDirs: true)
