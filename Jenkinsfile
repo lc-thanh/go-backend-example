@@ -17,7 +17,7 @@ pipeline {
         GOLANGCI_LINT_VERSION = 'v1.60.3-alpine'
         
         // Environment files path on Jenkins node
-        ENV_DIR = '/app/env'
+        ENV_DIR = '/app/envs/go-backend'
         
         // Build info
         BUILD_TIME = sh(script: "date -u '+%Y-%m-%dT%H:%M:%SZ'", returnStdout: true).trim()
@@ -46,10 +46,20 @@ pipeline {
         // Image tag based on branch/tag
         IMAGE_TAG = sh(script: '''
             BRANCH="${CURRENT_BRANCH}"
+            COMMIT="${GIT_COMMIT_SHORT}"
+            
+            # Ensure we have a commit hash
+            if [ -z "$COMMIT" ]; then
+                COMMIT=$(git rev-parse --short HEAD || echo "unknown")
+            fi
+            
+            # Generate tag based on branch
             if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
                 echo "latest"
+            elif [ -n "$BRANCH" ] && [ "$BRANCH" != "HEAD" ]; then
+                echo "${BRANCH}-${COMMIT}"
             else
-                echo "${BRANCH}-${GIT_COMMIT_SHORT}"
+                echo "build-${COMMIT}"
             fi
         ''', returnStdout: true).trim()
     }
@@ -308,15 +318,19 @@ pipeline {
             steps {
                 script {
                     echo "🐳 Building Docker image: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
-                    
-                    // Build Docker image
-                    docker.build("${DOCKER_IMAGE_NAME}:${IMAGE_TAG}", ".")
-                    
-                    // Tag as latest if main branch
-                    if (CURRENT_BRANCH == 'main' || CURRENT_BRANCH == 'master') {
-                        sh "docker tag ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_IMAGE_NAME}:latest"
-                    }
                 }
+                sh '''
+                    # Build Docker image
+                    docker build -t ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} .
+                    
+                    # Tag as latest if main branch
+                    if [ "${CURRENT_BRANCH}" = "main" ] || [ "${CURRENT_BRANCH}" = "master" ]; then
+                        docker tag ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_IMAGE_NAME}:latest
+                    fi
+                    
+                    # List built images
+                    docker images | grep ${DOCKER_IMAGE_NAME}
+                '''
             }
         }
         
@@ -367,14 +381,27 @@ pipeline {
             steps {
                 script {
                     echo "📤 Pushing Docker image to registry..."
-                    
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
-                        docker.image("${DOCKER_IMAGE_NAME}:${IMAGE_TAG}").push()
+                }
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_CREDENTIALS_ID}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        # Login to Docker registry
+                        echo "$DOCKER_PASS" | docker login ${DOCKER_REGISTRY} -u "$DOCKER_USER" --password-stdin
                         
-                        if (CURRENT_BRANCH == 'main' || CURRENT_BRANCH == 'master') {
-                            docker.image("${DOCKER_IMAGE_NAME}:latest").push()
-                        }
-                    }
+                        # Push image with specific tag
+                        docker push ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
+                        
+                        # Push latest tag if main branch
+                        if [ "${CURRENT_BRANCH}" = "main" ] || [ "${CURRENT_BRANCH}" = "master" ]; then
+                            docker push ${DOCKER_IMAGE_NAME}:latest
+                        fi
+                        
+                        # Logout
+                        docker logout ${DOCKER_REGISTRY}
+                    '''
                 }
             }
         }
