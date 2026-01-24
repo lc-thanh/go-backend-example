@@ -392,11 +392,11 @@ pipeline {
                         echo "$DOCKER_PASS" | docker login ${DOCKER_REGISTRY} -u "$DOCKER_USER" --password-stdin
                         
                         # Push image with specific tag
-                        docker push ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
+                        docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
                         
                         # Push latest tag if main branch
                         if [ "${CURRENT_BRANCH}" = "main" ] || [ "${CURRENT_BRANCH}" = "master" ]; then
-                            docker push ${DOCKER_IMAGE_NAME}:latest
+                            docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:latest
                         fi
                         
                         # Logout
