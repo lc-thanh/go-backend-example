@@ -32,22 +32,13 @@ pipeline {
                 exit 0
             fi
             
-            # Priority 2: BRANCH_NAME from Jenkins (Multibranch Pipeline)
+            # Priority 2: BRANCH_NAME from Jenkins (Multibranch Pipeline - most reliable)
             if [ -n "${BRANCH_NAME:-}" ]; then
                 echo "${BRANCH_NAME}"
                 exit 0
             fi
             
-            # Priority 3: GIT_BRANCH from Git Plugin (format: origin/feature/xyz)
-            if [ -n "${GIT_BRANCH:-}" ]; then
-                # Strip 'origin/' or 'refs/heads/' prefix
-                BRANCH="${GIT_BRANCH#origin/}"
-                BRANCH="${BRANCH#refs/heads/}"
-                echo "$BRANCH"
-                exit 0
-            fi
-            
-            # Priority 4: Check git directly
+            # Priority 3: Check git repository directly (more reliable than GIT_BRANCH)
             # First try to get current HEAD ref
             BRANCH=$(git symbolic-ref -q --short HEAD 2>/dev/null || echo "")
             
@@ -56,12 +47,12 @@ pipeline {
                 exit 0
             fi
             
-            # Priority 5: Detached HEAD - find ALL remote branches containing this commit
+            # Priority 4: Detached HEAD - find ALL remote branches containing this commit
             # Then prefer feature/* branches over main/master
             BRANCHES=$(git branch -r --contains HEAD 2>/dev/null | sed 's|origin/||g' | grep -v HEAD | xargs)
             
             if [ -n "$BRANCHES" ]; then
-                # Try to find feature branch first
+                # Try to find feature/bugfix/hotfix/develop branch first (higher priority)
                 for branch in $BRANCHES; do
                     case "$branch" in
                         feature/*|bugfix/*|hotfix/*|develop)
@@ -71,12 +62,21 @@ pipeline {
                     esac
                 done
                 
-                # Fallback to first branch found
+                # If no priority branch found, fallback to first branch
                 echo "$BRANCHES" | awk '{print $1}'
                 exit 0
             fi
             
-            # Last resort
+            # Priority 5: GIT_BRANCH from Git Plugin as last resort (may be unreliable)
+            if [ -n "${GIT_BRANCH:-}" ]; then
+                # Strip 'origin/' or 'refs/heads/' prefix
+                BRANCH="${GIT_BRANCH#origin/}"
+                BRANCH="${BRANCH#refs/heads/}"
+                echo "$BRANCH"
+                exit 0
+            fi
+            
+            # Absolute last resort
             echo "detached-HEAD"
         ''', returnStdout: true).trim()
         
