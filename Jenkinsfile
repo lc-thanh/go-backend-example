@@ -230,7 +230,9 @@ pipeline {
                     echo "🔨 Building Go binary..."
                 }
                 sh '''
+                    # Run docker with current user to avoid permission issues
                     docker run --rm \
+                        -u $(id -u):$(id -g) \
                         -v "$(pwd):/app" \
                         -w /app \
                         -e CGO_ENABLED=${CGO_ENABLED} \
@@ -462,15 +464,27 @@ pipeline {
                 docker image prune -f --filter "until=24h" || true
             '''
             
-            // Clean workspace
-            cleanWs(
-                deleteDirs: true,
-                patterns: [
-                    [pattern: 'bin/', type: 'INCLUDE'],
-                    [pattern: 'coverage.*', type: 'INCLUDE'],
-                    [pattern: 'gosec-report.json', type: 'INCLUDE']
-                ]
-            )
+            // Clean workspace with fallback for root-owned files
+            script {
+                try {
+                    cleanWs(
+                        deleteDirs: true,
+                        patterns: [
+                            [pattern: 'bin/', type: 'INCLUDE'],
+                            [pattern: 'coverage.*', type: 'INCLUDE'],
+                            [pattern: 'gosec-report.json', type: 'INCLUDE']
+                        ]
+                    )
+                } catch (Exception e) {
+                    echo "⚠️ cleanWs() failed, using docker to remove root-owned files..."
+                    sh '''
+                        # Remove root-owned files using docker
+                        docker run --rm -v "$(pwd):/workspace" alpine sh -c 'rm -rf /workspace/bin /workspace/coverage.* /workspace/gosec-report.json' || true
+                        # Try cleanWs again
+                    '''
+                    cleanWs(deleteDirs: true)
+                }
+            }
         }
         
         success {
