@@ -23,14 +23,23 @@ pipeline {
         BUILD_TIME = sh(script: "date -u '+%Y-%m-%dT%H:%M:%SZ'", returnStdout: true).trim()
         GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
         
-        // Get current branch/tag name (handle null BRANCH_NAME)
+        // Get current branch/tag name (handle null BRANCH_NAME and detached HEAD)
         CURRENT_BRANCH = sh(script: '''
             if [ -n "${TAG_NAME:-}" ]; then
                 echo "${TAG_NAME}"
             elif [ -n "${BRANCH_NAME:-}" ]; then
                 echo "${BRANCH_NAME}"
+            elif [ -n "${GIT_BRANCH:-}" ]; then
+                # GIT_BRANCH might be like "origin/main", strip the remote part
+                echo "${GIT_BRANCH}" | sed 's|^origin/||'
             else
-                git rev-parse --abbrev-ref HEAD
+                # Try to get branch from git, handle detached HEAD
+                BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+                if [ "$BRANCH" = "HEAD" ] || [ -z "$BRANCH" ]; then
+                    # Detached HEAD state, try to find branch from remote
+                    BRANCH=$(git branch -r --contains HEAD | grep -v HEAD | head -1 | sed 's|origin/||' | xargs || echo "detached-HEAD")
+                fi
+                echo "$BRANCH"
             fi
         ''', returnStdout: true).trim()
         
