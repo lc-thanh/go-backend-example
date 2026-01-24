@@ -219,11 +219,11 @@ pipeline {
                             go tool cover -html=coverage.out -o coverage.html || true
                     '''
                     publishHTML([
-                        allowMissing: false,
+                        allowMissing: true,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'coverage',
-                        reportFiles: 'index.html',
+                        reportDir: '.',
+                        reportFiles: 'coverage.html',
                         reportName: 'Go Coverage Report'
                     ])
                 }
@@ -299,9 +299,10 @@ pipeline {
         
         stage('Build Docker Image') {
             when {
-                anyOf {
-                    branch 'main'
-                    tag pattern: '.*', comparator: 'REGEXP'
+                expression {
+                    return CURRENT_BRANCH == 'main' || 
+                           CURRENT_BRANCH == 'master' || 
+                           env.TAG_NAME != null
                 }
             }
             steps {
@@ -321,9 +322,10 @@ pipeline {
         
         stage('Test Docker Image') {
             when {
-                anyOf {
-                    branch 'main'
-                    tag pattern: '.*', comparator: 'REGEXP'
+                expression {
+                    return CURRENT_BRANCH == 'main' || 
+                           CURRENT_BRANCH == 'master' || 
+                           env.TAG_NAME != null
                 }
             }
             steps {
@@ -356,9 +358,10 @@ pipeline {
         
         stage('Push Docker Image') {
             when {
-                anyOf {
-                    branch 'main'
-                    tag pattern: '.*', comparator: 'REGEXP'
+                expression {
+                    return CURRENT_BRANCH == 'main' || 
+                           CURRENT_BRANCH == 'master' || 
+                           env.TAG_NAME != null
                 }
             }
             steps {
@@ -378,9 +381,10 @@ pipeline {
         
         stage('Deploy Approval') {
             when {
-                anyOf {
-                    branch 'main'
-                    tag pattern: '.*', comparator: 'REGEXP'
+                expression {
+                    return CURRENT_BRANCH == 'main' || 
+                           CURRENT_BRANCH == 'master' || 
+                           env.TAG_NAME != null
                 }
             }
             steps {
@@ -414,9 +418,10 @@ pipeline {
         
         stage('Deploy') {
             when {
-                anyOf {
-                    branch 'main'
-                    tag pattern: '.*', comparator: 'REGEXP'
+                expression {
+                    return CURRENT_BRANCH == 'main' || 
+                           CURRENT_BRANCH == 'master' || 
+                           env.TAG_NAME != null
                 }
             }
             steps {
@@ -468,9 +473,10 @@ pipeline {
         
         stage('Post-Deploy Verification') {
             when {
-                anyOf {
-                    branch 'main'
-                    tag pattern: '.*', comparator: 'REGEXP'
+                expression {
+                    return CURRENT_BRANCH == 'main' || 
+                           CURRENT_BRANCH == 'master' || 
+                           env.TAG_NAME != null
                 }
             }
             steps {
