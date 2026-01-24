@@ -23,8 +23,26 @@ pipeline {
         BUILD_TIME = sh(script: "date -u '+%Y-%m-%dT%H:%M:%SZ'", returnStdout: true).trim()
         GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
         
+        // Get current branch/tag name (handle null BRANCH_NAME)
+        CURRENT_BRANCH = sh(script: '''
+            if [ -n "${TAG_NAME:-}" ]; then
+                echo "${TAG_NAME}"
+            elif [ -n "${BRANCH_NAME:-}" ]; then
+                echo "${BRANCH_NAME}"
+            else
+                git rev-parse --abbrev-ref HEAD
+            fi
+        ''', returnStdout: true).trim()
+        
         // Image tag based on branch/tag
-        IMAGE_TAG = "${env.BRANCH_NAME == 'main' ? 'latest' : env.BRANCH_NAME}-${GIT_COMMIT_SHORT}"
+        IMAGE_TAG = sh(script: '''
+            BRANCH="${CURRENT_BRANCH}"
+            if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+                echo "latest"
+            else
+                echo "${BRANCH}-${GIT_COMMIT_SHORT}"
+            fi
+        ''', returnStdout: true).trim()
     }
     
     options {
@@ -46,8 +64,14 @@ pipeline {
             steps {
                 script {
                     echo "🔄 Checking out code..."
-                    echo "Branch: ${env.BRANCH_NAME}"
+                    echo "Branch/Tag: ${CURRENT_BRANCH}"
                     echo "Commit: ${GIT_COMMIT_SHORT}"
+                    if (env.TAG_NAME) {
+                        echo "Tag Name: ${env.TAG_NAME}"
+                    }
+                    if (env.BRANCH_NAME) {
+                        echo "Branch Name: ${env.BRANCH_NAME}"
+                    }
                 }
                 checkout scm
             }
@@ -273,7 +297,7 @@ pipeline {
                     docker.build("${DOCKER_IMAGE_NAME}:${IMAGE_TAG}", ".")
                     
                     // Tag as latest if main branch
-                    if (env.BRANCH_NAME == 'main') {
+                    if (CURRENT_BRANCH == 'main' || CURRENT_BRANCH == 'master') {
                         sh "docker tag ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_IMAGE_NAME}:latest"
                     }
                 }
@@ -329,7 +353,7 @@ pipeline {
                     docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
                         docker.image("${DOCKER_IMAGE_NAME}:${IMAGE_TAG}").push()
                         
-                        if (env.BRANCH_NAME == 'main') {
+                        if (CURRENT_BRANCH == 'main' || CURRENT_BRANCH == 'master') {
                             docker.image("${DOCKER_IMAGE_NAME}:latest").push()
                         }
                     }
@@ -348,7 +372,7 @@ pipeline {
                 script {
                     echo "⏸️ Waiting for deployment approval..."
                     
-                    def deploymentType = env.TAG_NAME ? "Tag: ${env.TAG_NAME}" : "Branch: ${env.BRANCH_NAME}"
+                    def deploymentType = env.TAG_NAME ? "Tag: ${env.TAG_NAME}" : "Branch: ${CURRENT_BRANCH}"
                     
                     timeout(time: 30, unit: 'MINUTES') {
                         input(
@@ -490,7 +514,8 @@ pipeline {
         success {
             script {
                 def message = "✅ Build #${env.BUILD_NUMBER} succeeded"
-                if (env.BRANCH_NAME == 'main' || env.TAG_NAME) {
+                message += "\nBranch/Tag: ${CURRENT_BRANCH}"
+                if (CURRENT_BRANCH == 'main' || CURRENT_BRANCH == 'master' || env.TAG_NAME) {
                     message += "\n🚀 Deployed: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
                 }
                 echo message
@@ -505,7 +530,7 @@ pipeline {
         
         failure {
             script {
-                def message = "❌ Build #${env.BUILD_NUMBER} failed\nBranch: ${env.BRANCH_NAME}\nCommit: ${GIT_COMMIT_SHORT}"
+                def message = "❌ Build #${env.BUILD_NUMBER} failed\nBranch/Tag: ${CURRENT_BRANCH}\nCommit: ${GIT_COMMIT_SHORT}"
                 echo message
                 
                 // Uncomment to enable Slack notification
