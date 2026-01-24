@@ -26,22 +26,58 @@ pipeline {
         
         // Get current branch/tag name (handle null BRANCH_NAME and detached HEAD)
         CURRENT_BRANCH = sh(script: '''
+            # Priority 1: TAG_NAME from Jenkins
             if [ -n "${TAG_NAME:-}" ]; then
                 echo "${TAG_NAME}"
-            elif [ -n "${BRANCH_NAME:-}" ]; then
-                echo "${BRANCH_NAME}"
-            elif [ -n "${GIT_BRANCH:-}" ]; then
-                # GIT_BRANCH might be like "origin/main", strip the remote part
-                echo "${GIT_BRANCH}" | sed 's|^origin/||'
-            else
-                # Try to get branch from git, handle detached HEAD
-                BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-                if [ "$BRANCH" = "HEAD" ] || [ -z "$BRANCH" ]; then
-                    # Detached HEAD state, try to find branch from remote
-                    BRANCH=$(git branch -r --contains HEAD | grep -v HEAD | head -1 | sed 's|origin/||' | xargs || echo "detached-HEAD")
-                fi
-                echo "$BRANCH"
+                exit 0
             fi
+            
+            # Priority 2: BRANCH_NAME from Jenkins (Multibranch Pipeline)
+            if [ -n "${BRANCH_NAME:-}" ]; then
+                echo "${BRANCH_NAME}"
+                exit 0
+            fi
+            
+            # Priority 3: GIT_BRANCH from Git Plugin (format: origin/feature/xyz)
+            if [ -n "${GIT_BRANCH:-}" ]; then
+                # Strip 'origin/' or 'refs/heads/' prefix
+                BRANCH="${GIT_BRANCH#origin/}"
+                BRANCH="${BRANCH#refs/heads/}"
+                echo "$BRANCH"
+                exit 0
+            fi
+            
+            # Priority 4: Check git directly
+            # First try to get current HEAD ref
+            BRANCH=$(git symbolic-ref -q --short HEAD 2>/dev/null || echo "")
+            
+            if [ -n "$BRANCH" ] && [ "$BRANCH" != "HEAD" ]; then
+                echo "$BRANCH"
+                exit 0
+            fi
+            
+            # Priority 5: Detached HEAD - find ALL remote branches containing this commit
+            # Then prefer feature/* branches over main/master
+            BRANCHES=$(git branch -r --contains HEAD 2>/dev/null | sed 's|origin/||g' | grep -v HEAD | xargs)
+            
+            if [ -n "$BRANCHES" ]; then
+                # Try to find feature branch first
+                for branch in $BRANCHES; do
+                    case "$branch" in
+                        feature/*|bugfix/*|hotfix/*|develop)
+                            echo "$branch"
+                            exit 0
+                            ;;
+                    esac
+                done
+                
+                # Fallback to first branch found
+                echo "$BRANCHES" | awk '{print $1}'
+                exit 0
+            fi
+            
+            # Last resort
+            echo "detached-HEAD"
         ''', returnStdout: true).trim()
         
         // Image tag based on branch/tag
