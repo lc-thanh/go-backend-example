@@ -24,79 +24,20 @@ pipeline {
         BUILD_TIME = sh(script: "date -u '+%Y-%m-%dT%H:%M:%SZ'", returnStdout: true).trim()
         GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
         
-        // Get current branch/tag name (handle null BRANCH_NAME and detached HEAD)
-        CURRENT_BRANCH = sh(script: '''
-            # Priority 1: TAG_NAME from Jenkins
-            if [ -n "${TAG_NAME:-}" ]; then
-                echo "${TAG_NAME}"
-                exit 0
-            fi
-            
-            # Priority 2: BRANCH_NAME from Jenkins (Multibranch Pipeline - most reliable)
-            if [ -n "${BRANCH_NAME:-}" ]; then
-                echo "${BRANCH_NAME}"
-                exit 0
-            fi
-            
-            # Priority 3: Check git repository directly (more reliable than GIT_BRANCH)
-            # First try to get current HEAD ref
-            BRANCH=$(git symbolic-ref -q --short HEAD 2>/dev/null || echo "")
-            
-            if [ -n "$BRANCH" ] && [ "$BRANCH" != "HEAD" ]; then
-                echo "$BRANCH"
-                exit 0
-            fi
-            
-            # Priority 4: Detached HEAD - find ALL remote branches containing this commit
-            # Then prefer feature/* branches over main/master
-            BRANCHES=$(git branch -r --contains HEAD 2>/dev/null | sed 's|origin/||g' | grep -v HEAD | xargs)
-            
-            if [ -n "$BRANCHES" ]; then
-                # Try to find feature/bugfix/hotfix/develop branch first (higher priority)
-                for branch in $BRANCHES; do
-                    case "$branch" in
-                        feature/*|bugfix/*|hotfix/*|develop)
-                            echo "$branch"
-                            exit 0
-                            ;;
-                    esac
-                done
-                
-                # If no priority branch found, fallback to first branch
-                echo "$BRANCHES" | awk '{print $1}'
-                exit 0
-            fi
-            
-            # Priority 5: GIT_BRANCH from Git Plugin as last resort (may be unreliable)
-            if [ -n "${GIT_BRANCH:-}" ]; then
-                # Strip 'origin/' or 'refs/heads/' prefix
-                BRANCH="${GIT_BRANCH#origin/}"
-                BRANCH="${BRANCH#refs/heads/}"
-                echo "$BRANCH"
-                exit 0
-            fi
-            
-            # Absolute last resort
-            echo "detached-HEAD"
-        ''', returnStdout: true).trim()
+        // Current branch or tag name (Multibranch Pipeline provides these variables)
+        CURRENT_BRANCH = env.TAG_NAME ?: env.BRANCH_NAME
         
         // Image tag based on branch/tag
         IMAGE_TAG = sh(script: '''
-            BRANCH="${CURRENT_BRANCH}"
-            COMMIT="${GIT_COMMIT_SHORT}"
-            
-            # Ensure we have a commit hash
-            if [ -z "$COMMIT" ]; then
-                COMMIT=$(git rev-parse --short HEAD || echo "unknown")
-            fi
-            
-            # Generate tag based on branch
-            if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            if [ -n "${TAG_NAME:-}" ]; then
+                # For tags, use tag name as-is
+                echo "${TAG_NAME}"
+            elif [ "${BRANCH_NAME}" = "main" ] || [ "${BRANCH_NAME}" = "master" ]; then
+                # For main/master branch, use 'latest'
                 echo "latest"
-            elif [ -n "$BRANCH" ] && [ "$BRANCH" != "HEAD" ]; then
-                echo "${BRANCH}-${COMMIT}"
             else
-                echo "build-${COMMIT}"
+                # For other branches, use branch-commit format
+                echo "${BRANCH_NAME}-${GIT_COMMIT_SHORT}"
             fi
         ''', returnStdout: true).trim()
     }
@@ -122,12 +63,6 @@ pipeline {
                     echo "🔄 Checking out code..."
                     echo "Branch/Tag: ${CURRENT_BRANCH}"
                     echo "Commit: ${GIT_COMMIT_SHORT}"
-                    if (env.TAG_NAME) {
-                        echo "Tag Name: ${env.TAG_NAME}"
-                    }
-                    if (env.BRANCH_NAME) {
-                        echo "Branch Name: ${env.BRANCH_NAME}"
-                    }
                 }
                 checkout scm
             }
